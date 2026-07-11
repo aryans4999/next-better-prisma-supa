@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import prisma from "@/lib/prisma";
 
 export default async function Dashboard() {
   const session = await auth.api.getSession({
@@ -9,6 +10,19 @@ export default async function Dashboard() {
   if (!session) {
     redirect("/login");
   }
-
-  return <div>Dashboard</div>;
+  const { user } = session;
+  const notes = await prisma.note.findMany({
+    where: {
+      userId: user.id,
+    },
+  });
+  return (
+    <main>
+      {user.email}
+      Dashboard
+      {notes.map((note) => (
+        <div key={note.id}>{note.text}</div>
+      ))}
+    </main>
+  );
 }

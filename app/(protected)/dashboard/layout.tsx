@@ -49,7 +49,7 @@ export default function DashboardLayout({
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
-            <div className="w-full border-b-1 flex items-center justify-between p-4">
+            <div className="w-full border-b flex items-center justify-between p-4">
               <div className="flex gap-4">
                 <SidebarTrigger />
                 <Separator orientation="vertical" />
