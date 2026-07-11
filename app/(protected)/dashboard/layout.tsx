@@ -45,7 +45,7 @@ export default function DashboardLayout({
         inter.variable,
       )}
     >
-      <body className="min-h-full flex">
+      <body className="min-h-full flex flex-col">
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>

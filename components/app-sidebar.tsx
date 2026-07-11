@@ -6,6 +6,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { auth } from "@/lib/auth";
@@ -19,7 +20,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown, SquareTerminal } from "lucide-react";
 import { Button, buttonVariants } from "./ui/button";
 import { cn } from "@/lib/utils";
 
@@ -30,34 +31,66 @@ const AppSidebar = async () => {
   if (!session) return redirect("/login");
   const { user } = session;
   return (
-    <Sidebar variant="inset">
+    <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader></SidebarHeader>
-      <SidebarContent></SidebarContent>
+      <SidebarContent>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <a href="/dashboard">
+                <SquareTerminal />
+                Dashboard
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <a href="/dashboard">
+                <SquareTerminal />
+                Dashboard
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <a href="/dashboard">
+                <SquareTerminal />
+                Dashboard
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <a href="/dashboard">
+                <SquareTerminal />
+                Dashboard
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton>
-                    <Avatar>
-                      <AvatarImage
-                        src={user.image ?? ""}
-                        alt={user.name ?? "User"}
-                      />
-                      <AvatarFallback>
-                        {user.name
-                          ?.split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .toUpperCase() ?? "U"}
-                      </AvatarFallback>
+                  <SidebarMenuButton
+                    size={"lg"}
+                    className="flex justify-between items-center"
+                  >
+                    <Avatar className="h-8 w-8 rounded-lg">
+                      <AvatarImage src={user.image} alt={user.name} />
+                      <AvatarFallback className="rounded-lg">CN</AvatarFallback>
                     </Avatar>
-                    <p>{user.name}</p>
-                    <ChevronsUpDown />
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-medium">{user.name}</span>
+                      <span className="truncate text-xs">{user.email}</span>
+                    </div>
+                    <ChevronsUpDown className="ml-auto size-4" />
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
+                <DropdownMenuContent side={"right"}>
                   <DropdownMenuGroup>
                     <DropdownMenuLabel>Account</DropdownMenuLabel>
                     <DropdownMenuItem>
@@ -73,6 +106,7 @@ const AppSidebar = async () => {
           </SidebarMenu>
         </SidebarMenu>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   );
 };
