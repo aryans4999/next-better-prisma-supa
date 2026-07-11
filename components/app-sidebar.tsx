@@ -4,10 +4,10 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { authClient } from "@/lib/auth-client";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -38,22 +38,24 @@ const AppSidebar = async () => {
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center justify-between hover:bg-neutral-800 w-full p-1 rounded-md gap-2">
-                  <Avatar>
-                    <AvatarImage
-                      src={user.image ?? ""}
-                      alt={user.name ?? "User"}
-                    />
-                    <AvatarFallback>
-                      {user.name
-                        ?.split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase() ?? "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <p>{user.name}</p>
-                  <ChevronsUpDown />
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton>
+                    <Avatar>
+                      <AvatarImage
+                        src={user.image ?? ""}
+                        alt={user.name ?? "User"}
+                      />
+                      <AvatarFallback>
+                        {user.name
+                          ?.split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase() ?? "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <p>{user.name}</p>
+                    <ChevronsUpDown />
+                  </SidebarMenuButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuGroup>

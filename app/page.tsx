@@ -24,12 +24,9 @@ export default async function Home() {
               You need to log in to view this page.
             </p>
 
-            <Link
-              href="/login"
-              className={buttonVariants({ className: "w-full" })}
-            >
-              Login
-            </Link>
+            <Button asChild>
+              <Link href="/login">Login</Link>
+            </Button>
           </CardContent>
         </Card>
       </main>
