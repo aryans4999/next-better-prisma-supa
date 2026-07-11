@@ -58,7 +58,12 @@ export default async function Home() {
 
         <CardContent>
           <p>Welcome back!</p>
-          <SignOutButton />
+          <div className="flex gap-2 items-center justify-center">
+            <SignOutButton />
+            <Button asChild>
+              <Link href="/dashboard">Go to Dashboard</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </main>

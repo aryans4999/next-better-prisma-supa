@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
+import SiteHeader from "@/components/site-header";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -49,12 +50,7 @@ export default function DashboardLayout({
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
-            <div className="w-full border-b flex items-center justify-between p-4">
-              <div className="flex gap-4">
-                <SidebarTrigger />
-                <Separator orientation="vertical" />
-              </div>
-            </div>
+            <SiteHeader />
             {children}
           </SidebarInset>
         </SidebarProvider>

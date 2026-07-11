@@ -1,5 +1,6 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
+import ThemeSwitcher from "@/components/themeSwitcher";
 
 const SiteHeader = () => {
   return (
@@ -8,6 +9,7 @@ const SiteHeader = () => {
         <SidebarTrigger />
         <Separator orientation="vertical" />
       </div>
+      <ThemeSwitcher />
     </div>
   );
 };
