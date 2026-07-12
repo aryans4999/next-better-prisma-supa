@@ -10,9 +10,6 @@ import {
 
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,12 +22,7 @@ import { ChevronsUpDown, LayoutDashboard, Truck, Users, Route, Wrench, Fuel, Bar
 import { Button, buttonVariants } from "./ui/button";
 import { cn } from "@/lib/utils";
 
-const AppSidebar = async () => {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  if (!session) return redirect("/login");
-  const { user } = session;
+const AppSidebar = () => {
   return (
     <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader></SidebarHeader>

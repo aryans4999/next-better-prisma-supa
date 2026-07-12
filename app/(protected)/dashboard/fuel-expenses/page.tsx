@@ -1,22 +1,11 @@
-import { headers } from 'next/headers';
-import { auth } from '@/lib/auth';
-import { redirect } from 'next/navigation';
+'use client';
+
 import { FuelForm } from '@/components/forms/fuel-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
 
-export const metadata = {
-  title: 'Fuel & Expenses - TransitOps',
-  description: 'Track fuel and operational expenses',
-};
-
-export default async function FuelExpensesPage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  
-  if (!session) {
-    redirect('/login');
-  }
+export default function FuelExpensesPage() {
+  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <main className="flex flex-1 flex-col gap-6 bg-background p-4 lg:p-6">
@@ -27,7 +16,7 @@ export default async function FuelExpensesPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <FuelForm onSuccess={() => window.location.reload()} />
+          <FuelForm onSuccess={() => setRefreshKey(k => k + 1)} />
         </div>
         <div className="lg:col-span-2">
           <Card className="bg-card border-border">

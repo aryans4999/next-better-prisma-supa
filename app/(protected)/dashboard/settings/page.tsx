@@ -1,25 +1,38 @@
-import { headers } from 'next/headers';
-import { auth } from '@/lib/auth';
-import { redirect } from 'next/navigation';
+'use client';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { auth } from '@/lib/auth';
 
-export const metadata = {
-  title: 'Settings - TransitOps',
-  description: 'Account and preferences settings',
-};
+export default function SettingsPage() {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-export default async function SettingsPage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  
-  if (!session) {
-    redirect('/login');
+  useEffect(() => {
+    const getSession = async () => {
+      try {
+        const session = await auth.api.getSession();
+        if (session?.user) {
+          setUser(session.user);
+        }
+      } catch (error) {
+        console.log('Failed to fetch session');
+      } finally {
+        setLoading(false);
+      }
+    };
+    getSession();
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="flex flex-1 flex-col gap-6 bg-background p-4 lg:p-6">
+        <p className="text-muted-foreground">Loading...</p>
+      </main>
+    );
   }
-
-  const { user } = session;
 
   return (
     <main className="flex flex-1 flex-col gap-6 bg-background p-4 lg:p-6">
@@ -37,11 +50,11 @@ export default async function SettingsPage() {
           <CardContent className="space-y-4">
             <div>
               <label className="text-sm font-medium text-muted-foreground">Name</label>
-              <p className="text-lg font-medium text-foreground mt-1">{user.name}</p>
+              <p className="text-lg font-medium text-foreground mt-1">{user?.name || 'N/A'}</p>
             </div>
             <div>
               <label className="text-sm font-medium text-muted-foreground">Email</label>
-              <p className="text-lg font-medium text-foreground mt-1">{user.email}</p>
+              <p className="text-lg font-medium text-foreground mt-1">{user?.email || 'N/A'}</p>
             </div>
           </CardContent>
         </Card>
@@ -83,21 +96,16 @@ export default async function SettingsPage() {
             <CardTitle className="text-destructive">Account Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <form action={async () => {
-              'use server';
-              await auth.api.signOut({
-                headers: await headers(),
-              });
-              redirect('/login');
-            }}>
-              <Button
-                type="submit"
-                className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
-              </Button>
-            </form>
+            <Button
+              onClick={async () => {
+                await auth.api.signOut();
+                window.location.href = '/login';
+              }}
+              className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </Button>
           </CardContent>
         </Card>
 
