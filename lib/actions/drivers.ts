@@ -1,0 +1,229 @@
+'use server';
+
+import prisma from '@/lib/prisma';
+import { driverCreateSchema, driverUpdateSchema, DriverCreate, DriverUpdate } from '@/lib/validators/transit';
+import { revalidateTag } from 'next/cache';
+
+// Type assertion for new Prisma models that will be available after migration
+const db = prisma as any;
+
+const DriverStatus = {
+  AVAILABLE: 'AVAILABLE',
+  ON_TRIP: 'ON_TRIP',
+  OFF_DUTY: 'OFF_DUTY',
+  SUSPENDED: 'SUSPENDED',
+} as const;
+
+export async function createDriver(data: DriverCreate) {
+  try {
+    const validated = driverCreateSchema.parse(data);
+    
+    // Check if license has expired
+    if (validated.licenseExpiry < new Date()) {
+      return { success: false, error: 'License has expired' };
+    }
+
+    const driver = await db.driver.create({
+      data: {
+        ...validated,
+        status: DriverStatus.AVAILABLE,
+      },
+    });
+
+    revalidateTag('drivers', 'max');
+    return { success: true, data: driver };
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return { success: false, error: 'License number already exists' };
+    }
+    return { success: false, error: 'Failed to create driver' };
+  }
+}
+
+export async function updateDriver(id: string, data: DriverUpdate) {
+  try {
+    const validated = driverUpdateSchema.parse(data);
+    
+    if (validated.licenseExpiry && validated.licenseExpiry < new Date()) {
+      return { success: false, error: 'License has expired' };
+    }
+
+    const driver = await db.driver.update({
+      where: { id },
+      data: validated,
+    });
+
+    revalidateTag('drivers', 'max');
+    return { success: true, data: driver };
+  } catch (error) {
+    return { success: false, error: 'Failed to update driver' };
+  }
+}
+
+export async function deleteDriver(id: string) {
+  try {
+    await db.driver.delete({
+      where: { id },
+    });
+
+    revalidateTag('drivers', 'max');
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Failed to delete driver' };
+  }
+}
+
+export async function getDrivers() {
+  try {
+    const drivers = await db.driver.findMany({
+      where: {
+        status: { not: DriverStatus.SUSPENDED },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return { success: true, data: drivers };
+  } catch (error) {
+    return { success: false, error: 'Failed to fetch drivers' };
+  }
+}
+
+export async function getDriverById(id: string) {
+  try {
+    const driver = await db.driver.findUnique({
+      where: { id },
+      include: {
+        trips: { orderBy: { createdAt: 'desc' }, take: 10 },
+      },
+    });
+
+    if (!driver) {
+      return { success: false, error: 'Driver not found' };
+    }
+
+    return { success: true, data: driver };
+  } catch (error) {
+    return { success: false, error: 'Failed to fetch driver' };
+  }
+}
+
+export async function suspendDriver(id: string, reason: string) {
+  try {
+    const driver = await db.driver.update({
+      where: { id },
+      data: {
+        status: DriverStatus.SUSPENDED,
+        suspendedReason: reason,
+      },
+    });
+
+    revalidateTag('drivers', 'max');
+    return { success: true, data: driver };
+  } catch (error) {
+    return { success: false, error: 'Failed to suspend driver' };
+  }
+}
+
+export async function updateSafetyScore(id: string, score: number) {
+  try {
+    if (score < 0 || score > 100) {
+      return { success: false, error: 'Safety score must be between 0 and 100' };
+    }
+
+    const driver = await db.driver.update({
+      where: { id },
+      data: { safetyScore: score },
+    });
+
+    revalidateTag('drivers', 'max');
+    return { success: true, data: driver };
+  } catch (error) {
+    return { success: false, error: 'Failed to update safety score' };
+  }
+}
+
+export async function getAvailableDrivers() {
+  try {
+    const today = new Date();
+    
+    const drivers = await db.driver.findMany({
+      where: {
+        status: DriverStatus.AVAILABLE,
+        licenseExpiry: { gt: today },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return { success: true, data: drivers };
+  } catch (error) {
+    return { success: false, error: 'Failed to fetch available drivers' };
+  }
+}
+
+export async function getExpiredLicenses() {
+  try {
+    const today = new Date();
+    
+    const drivers = await db.driver.findMany({
+      where: {
+        licenseExpiry: { lte: today },
+      },
+      orderBy: { licenseExpiry: 'asc' },
+    });
+
+    return { success: true, data: drivers };
+  } catch (error) {
+    return { success: false, error: 'Failed to fetch expired licenses' };
+  }
+}
+
+export async function getExpiringLicenses(daysAhead: number = 30) {
+  try {
+    const today = new Date();
+    const futureDate = new Date(today.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+    
+    const drivers = await db.driver.findMany({
+      where: {
+        licenseExpiry: {
+          gte: today,
+          lte: futureDate,
+        },
+      },
+      orderBy: { licenseExpiry: 'asc' },
+    });
+
+    return { success: true, data: drivers };
+  } catch (error) {
+    return { success: false, error: 'Failed to fetch expiring licenses' };
+  }
+}
+
+export async function getDriverStats() {
+  try {
+    const [total, available, onTrip, offDuty, suspended] = await Promise.all([
+      db.driver.count(),
+      db.driver.count({ where: { status: DriverStatus.AVAILABLE } }),
+      db.driver.count({ where: { status: DriverStatus.ON_TRIP } }),
+      db.driver.count({ where: { status: DriverStatus.OFF_DUTY } }),
+      db.driver.count({ where: { status: DriverStatus.SUSPENDED } }),
+    ]);
+
+    const expiredLicenses = await db.driver.count({
+      where: { licenseExpiry: { lte: new Date() } },
+    });
+
+    return {
+      success: true,
+      data: {
+        total,
+        available,
+        onTrip,
+        offDuty,
+        suspended,
+        expiredLicenses,
+      },
+    };
+  } catch (error) {
+    return { success: false, error: 'Failed to fetch driver stats' };
+  }
+}
