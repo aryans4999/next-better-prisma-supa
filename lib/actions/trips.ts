@@ -216,7 +216,7 @@ export async function updateTrip(id: string, data: TripUpdate) {
   }
 }
 
-export async function getTrips(status?: TripStatus) {
+export async function getTrips(status?: string) {
   try {
     const trips = await db.trip.findMany({
       where: status ? { status } : undefined,

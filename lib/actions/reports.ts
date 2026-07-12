@@ -80,12 +80,12 @@ export async function getVehicleAnalytics(vehicleId: string) {
 
     if (!vehicle) return { success: false, error: 'Vehicle not found' };
 
-    const totalDistance = vehicle.trips.reduce((sum, t) => sum + (t.actualDistance || 0), 0);
-    const totalFuelConsumed = vehicle.fuelLogs.reduce((sum, f) => sum + f.liters, 0);
+    const totalDistance = vehicle.trips.reduce((sum: number, t: any) => sum + (t.actualDistance || 0), 0);
+    const totalFuelConsumed = vehicle.fuelLogs.reduce((sum: number, f: any) => sum + f.liters, 0);
     const fuelEfficiency = totalDistance > 0 ? (totalDistance / totalFuelConsumed).toFixed(2) : '0';
-    const totalMaintenanceCost = vehicle.maintenanceLogs.reduce((sum, m) => sum + m.cost, 0);
-    const totalFuelCost = vehicle.fuelLogs.reduce((sum, f) => sum + f.cost, 0);
-    const totalExpenses = vehicle.expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalMaintenanceCost = vehicle.maintenanceLogs.reduce((sum: number, m: any) => sum + m.cost, 0);
+    const totalFuelCost = vehicle.fuelLogs.reduce((sum: number, f: any) => sum + f.cost, 0);
+    const totalExpenses = vehicle.expenses.reduce((sum: number, e: any) => sum + e.amount, 0);
     const totalOperationalCost = totalFuelCost + totalMaintenanceCost + totalExpenses;
 
     const roi = vehicle.acquisitionCost > 0
@@ -169,11 +169,11 @@ export async function getMonthlyReport(year: number, month: number) {
       },
     });
 
-    const totalDistance = trips.reduce((sum, t) => sum + (t.actualDistance || 0), 0);
-    const totalFuelConsumed = fuelLogs.reduce((sum, f) => sum + f.liters, 0);
-    const totalMaintenanceCost = maintenanceLogs.reduce((sum, m) => sum + m.cost, 0);
-    const totalFuelCost = fuelLogs.reduce((sum, f) => sum + f.cost, 0);
-    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalDistance = trips.reduce((sum: number, t: any) => sum + (t.actualDistance || 0), 0);
+    const totalFuelConsumed = fuelLogs.reduce((sum: number, f: any) => sum + f.liters, 0);
+    const totalMaintenanceCost = maintenanceLogs.reduce((sum: number, m: any) => sum + m.cost, 0);
+    const totalFuelCost = fuelLogs.reduce((sum: number, f: any) => sum + f.cost, 0);
+    const totalExpenses = expenses.reduce((sum: number, e: any) => sum + e.amount, 0);
 
     return {
       success: true,
@@ -211,9 +211,9 @@ export async function generateCSVExport() {
     let csv = 'Registration Number,Name,Type,Total Trips,Total Distance,Total Fuel Cost,Total Maintenance Cost\n';
 
     for (const vehicle of vehicles) {
-      const totalDistance = vehicle.trips.reduce((sum, t) => sum + (t.actualDistance || 0), 0);
-      const totalFuelCost = vehicle.fuelLogs.reduce((sum, f) => sum + f.cost, 0);
-      const totalMaintenanceCost = vehicle.maintenanceLogs.reduce((sum, m) => sum + m.cost, 0);
+      const totalDistance = vehicle.trips.reduce((sum: number, t: any) => sum + (t.actualDistance || 0), 0);
+      const totalFuelCost = vehicle.fuelLogs.reduce((sum: number, f: any) => sum + f.cost, 0);
+      const totalMaintenanceCost = vehicle.maintenanceLogs.reduce((sum: number, m: any) => sum + m.cost, 0);
 
       csv += `"${vehicle.registrationNumber}","${vehicle.name}","${vehicle.type}",${vehicle.trips.length},${totalDistance},${totalFuelCost},${totalMaintenanceCost}\n`;
     }
