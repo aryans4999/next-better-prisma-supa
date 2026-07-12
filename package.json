@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "node --env-file-if-exists=.env.development.local prisma/seed.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
