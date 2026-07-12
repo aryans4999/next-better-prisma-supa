@@ -48,13 +48,6 @@ export function LoginForm({
       password: "",
     },
   });
-  const handleGoogleLogin = async () => {
-    await authClient.signIn.social({
-      provider: "google",
-      callbackURL: "/", // where to redirect after login
-    });
-  };
-
   const onSubmit = async (values: FormValues) => {
     setServerError("");
 
@@ -134,16 +127,8 @@ export function LoginForm({
               )}
 
               <Field>
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting} className="w-full">
                   {isSubmitting ? "Logging in..." : "Login"}
-                </Button>
-
-                <Button
-                  onClick={handleGoogleLogin}
-                  variant="outline"
-                  type="button"
-                >
-                  Login with Google
                 </Button>
 
                 <FieldDescription className="text-center">
