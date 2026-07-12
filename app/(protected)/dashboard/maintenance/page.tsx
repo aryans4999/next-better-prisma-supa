@@ -1,22 +1,11 @@
-import { headers } from 'next/headers';
-import { auth } from '@/lib/auth';
-import { redirect } from 'next/navigation';
+'use client';
+
 import { MaintenanceForm } from '@/components/forms/maintenance-form';
 import { MaintenanceTable } from '@/components/features/maintenance-table';
+import { useState } from 'react';
 
-export const metadata = {
-  title: 'Maintenance - TransitOps',
-  description: 'Vehicle maintenance tracking',
-};
-
-export default async function MaintenancePage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  
-  if (!session) {
-    redirect('/login');
-  }
+export default function MaintenancePage() {
+  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <main className="flex flex-1 flex-col gap-6 bg-background p-4 lg:p-6">
@@ -27,10 +16,10 @@ export default async function MaintenancePage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <MaintenanceForm onSuccess={() => window.location.reload()} />
+          <MaintenanceForm onSuccess={() => setRefreshKey(k => k + 1)} />
         </div>
         <div className="lg:col-span-2">
-          <MaintenanceTable />
+          <MaintenanceTable key={refreshKey} />
         </div>
       </div>
     </main>

@@ -1,22 +1,11 @@
-import { headers } from 'next/headers';
-import { auth } from '@/lib/auth';
-import { redirect } from 'next/navigation';
+'use client';
+
 import { VehicleForm } from '@/components/forms/vehicle-form';
 import { VehicleTable } from '@/components/features/vehicle-table';
+import { useEffect, useState } from 'react';
 
-export const metadata = {
-  title: 'Vehicles - TransitOps',
-  description: 'Fleet vehicle management',
-};
-
-export default async function VehiclesPage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  
-  if (!session) {
-    redirect('/login');
-  }
+export default function VehiclesPage() {
+  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <main className="flex flex-1 flex-col gap-6 bg-background p-4 lg:p-6">
@@ -27,10 +16,10 @@ export default async function VehiclesPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <VehicleForm onSuccess={() => window.location.reload()} />
+          <VehicleForm onSuccess={() => setRefreshKey(k => k + 1)} />
         </div>
         <div className="lg:col-span-2">
-          <VehicleTable />
+          <VehicleTable key={refreshKey} />
         </div>
       </div>
     </main>
