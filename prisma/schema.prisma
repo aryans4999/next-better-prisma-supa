@@ -23,6 +23,7 @@ model User {
   sessions      Session[]
   accounts      Account[]
   notes        Note[]
+  role          UserRole_Model?
 
   @@unique([email])
   @@map("user")
@@ -86,4 +87,167 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+// TransitOps Platform Models
+
+enum UserRole {
+  FLEET_MANAGER
+  DRIVER
+  SAFETY_OFFICER
+  FINANCIAL_ANALYST
+  ADMIN
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  ON_TRIP
+  IN_SHOP
+  RETIRED
+}
+
+enum DriverStatus {
+  AVAILABLE
+  ON_TRIP
+  OFF_DUTY
+  SUSPENDED
+}
+
+enum TripStatus {
+  DRAFT
+  DISPATCHED
+  COMPLETED
+  CANCELLED
+}
+
+enum MaintenanceStatus {
+  OPEN
+  CLOSED
+}
+
+model UserRole_Model {
+  id     String   @id @default(cuid())
+  userId String   @unique
+  role   UserRole @default(FLEET_MANAGER)
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_role")
+}
+
+model Vehicle {
+  id                    String   @id @default(cuid())
+  registrationNumber    String   @unique
+  name                  String
+  type                  String
+  maxLoadCapacity       Float
+  odometer              Float    @default(0)
+  acquisitionCost       Float
+  status                VehicleStatus @default(AVAILABLE)
+  retiredDate           DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  trips                 Trip[]
+  maintenanceLogs       MaintenanceLog[]
+  fuelLogs              FuelLog[]
+  expenses              Expense[]
+
+  @@index([status])
+  @@map("vehicle")
+}
+
+model Driver {
+  id                String   @id @default(cuid())
+  name              String
+  licenseNumber     String   @unique
+  licenseCategory   String
+  licenseExpiry     DateTime
+  contact           String
+  safetyScore       Float    @default(100)
+  status            DriverStatus @default(AVAILABLE)
+  suspendedReason   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  trips             Trip[]
+
+  @@index([status])
+  @@index([licenseExpiry])
+  @@map("driver")
+}
+
+model Trip {
+  id                String   @id @default(cuid())
+  source            String
+  destination       String
+  vehicleId         String
+  vehicle           Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  driverId          String
+  driver            Driver   @relation(fields: [driverId], references: [id], onDelete: Restrict)
+  cargoWeight       Float
+  plannedDistance   Float
+  actualDistance    Float?
+  fuelConsumed      Float?
+  status            TripStatus @default(DRAFT)
+  dispatchedAt      DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  fuelLogs          FuelLog[]
+
+  @@index([vehicleId])
+  @@index([driverId])
+  @@index([status])
+  @@map("trip")
+}
+
+model MaintenanceLog {
+  id                String   @id @default(cuid())
+  vehicleId         String
+  vehicle           Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  description       String
+  cost              Float
+  performedDate     DateTime
+  status            MaintenanceStatus @default(OPEN)
+  closedDate        DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([vehicleId])
+  @@index([status])
+  @@map("maintenance_log")
+}
+
+model FuelLog {
+  id                String   @id @default(cuid())
+  vehicleId         String
+  vehicle           Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  tripId            String?
+  trip              Trip?    @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  liters            Float
+  cost              Float
+  date              DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([vehicleId])
+  @@index([tripId])
+  @@map("fuel_log")
+}
+
+model Expense {
+  id                String   @id @default(cuid())
+  vehicleId         String
+  vehicle           Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  type              String // "Maintenance", "Repair", "Insurance", etc.
+  amount            Float
+  date              DateTime
+  description       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([vehicleId])
+  @@index([date])
+  @@map("expense")
 }
