@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { auth } from '@/lib/auth';
 
 export default function SettingsPage() {
   const [user, setUser] = useState<any>(null);
@@ -13,7 +12,8 @@ export default function SettingsPage() {
   useEffect(() => {
     const getSession = async () => {
       try {
-        const session = await auth.api.getSession();
+        const response = await fetch('/api/auth/session');
+        const session = await response.json();
         if (session?.user) {
           setUser(session.user);
         }
@@ -98,8 +98,12 @@ export default function SettingsPage() {
           <CardContent>
             <Button
               onClick={async () => {
-                await auth.api.signOut();
-                window.location.href = '/login';
+                try {
+                  await fetch('/api/auth/signout', { method: 'POST' });
+                  window.location.href = '/login';
+                } catch (error) {
+                  console.log('Sign out failed');
+                }
               }}
               className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
