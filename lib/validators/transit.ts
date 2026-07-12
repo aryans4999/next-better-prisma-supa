@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { VehicleStatus, DriverStatus, TripStatus, MaintenanceStatus } from '@/lib/generated/prisma/enums';
 
 // Vehicle Validators
 export const vehicleCreateSchema = z.object({

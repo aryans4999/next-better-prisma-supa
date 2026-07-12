@@ -22,9 +22,9 @@ export function VehicleForm({ onSuccess }: VehicleFormProps) {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<VehicleCreate>({
+  } = useForm({
     resolver: zodResolver(vehicleCreateSchema),
-  });
+  }) as ReturnType<typeof useForm<VehicleCreate>>;
 
   const onSubmit = async (data: VehicleCreate) => {
     setIsLoading(true);

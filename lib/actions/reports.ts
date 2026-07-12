@@ -1,6 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
+const db = prisma as any;
 import { getFinancialStats, getFuelStats } from '@/lib/actions/fuel-expenses';
 import { getMaintenanceStats } from '@/lib/actions/maintenance';
 import { getTripStats } from '@/lib/actions/trips';
@@ -8,22 +9,22 @@ import { revalidateTag } from 'next/cache';
 
 export async function getFleetReport() {
   try {
-    const vehicles = await prisma.vehicle.findMany();
-    const drivers = await prisma.driver.findMany();
-    const trips = await prisma.trip.findMany();
-    const maintenance = await prisma.maintenanceLog.findMany();
-    const fuelLogs = await prisma.fuelLog.findMany();
-    const expenses = await prisma.expense.findMany();
+    const vehicles = await db.vehicle.findMany();
+    const drivers = await db.driver.findMany();
+    const trips = await db.trip.findMany();
+    const maintenance = await db.maintenanceLog.findMany();
+    const fuelLogs = await db.fuelLog.findMany();
+    const expenses = await db.expense.findMany();
 
     const totalTrips = trips.length;
-    const completedTrips = trips.filter(t => t.status === 'COMPLETED').length;
-    const totalDistance = trips.reduce((sum, t) => sum + (t.actualDistance || 0), 0);
-    const totalFuelConsumed = fuelLogs.reduce((sum, f) => sum + f.liters, 0);
+    const completedTrips = trips.filter((t: any) => t.status === 'COMPLETED').length;
+    const totalDistance = trips.reduce((sum: any, t: any) => sum + (t.actualDistance || 0), 0);
+    const totalFuelConsumed = fuelLogs.reduce((sum: any, f: any) => sum + f.liters, 0);
     const fuelEfficiency = totalDistance > 0 ? (totalDistance / totalFuelConsumed).toFixed(2) : '0';
 
-    const totalMaintenanceCost = maintenance.reduce((sum, m) => sum + m.cost, 0);
-    const totalFuelCost = fuelLogs.reduce((sum, f) => sum + f.cost, 0);
-    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalMaintenanceCost = maintenance.reduce((sum: any, m: any) => sum + m.cost, 0);
+    const totalFuelCost = fuelLogs.reduce((sum: any, f: any) => sum + f.cost, 0);
+    const totalExpenses = expenses.reduce((sum: any, e: any) => sum + e.amount, 0);
     const totalOperationalCost = totalFuelCost + totalMaintenanceCost + totalExpenses;
 
     return {
@@ -67,7 +68,7 @@ export async function getFleetReport() {
 
 export async function getVehicleAnalytics(vehicleId: string) {
   try {
-    const vehicle = await prisma.vehicle.findUnique({
+    const vehicle = await db.vehicle.findUnique({
       where: { id: vehicleId },
       include: {
         trips: true,
@@ -132,7 +133,7 @@ export async function getMonthlyReport(year: number, month: number) {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
 
-    const trips = await prisma.trip.findMany({
+    const trips = await db.trip.findMany({
       where: {
         createdAt: {
           gte: startDate,
@@ -141,7 +142,7 @@ export async function getMonthlyReport(year: number, month: number) {
       },
     });
 
-    const maintenanceLogs = await prisma.maintenanceLog.findMany({
+    const maintenanceLogs = await db.maintenanceLog.findMany({
       where: {
         performedDate: {
           gte: startDate,
@@ -150,7 +151,7 @@ export async function getMonthlyReport(year: number, month: number) {
       },
     });
 
-    const fuelLogs = await prisma.fuelLog.findMany({
+    const fuelLogs = await db.fuelLog.findMany({
       where: {
         date: {
           gte: startDate,
@@ -159,7 +160,7 @@ export async function getMonthlyReport(year: number, month: number) {
       },
     });
 
-    const expenses = await prisma.expense.findMany({
+    const expenses = await db.expense.findMany({
       where: {
         date: {
           gte: startDate,
@@ -199,7 +200,7 @@ export async function getMonthlyReport(year: number, month: number) {
 
 export async function generateCSVExport() {
   try {
-    const vehicles = await prisma.vehicle.findMany({
+    const vehicles = await db.vehicle.findMany({
       include: {
         trips: true,
         maintenanceLogs: true,

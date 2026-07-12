@@ -42,9 +42,9 @@ export function TripForm({ onSuccess }: TripFormProps) {
     reset,
     watch,
     formState: { errors },
-  } = useForm<TripCreate>({
+  } = useForm({
     resolver: zodResolver(tripCreateSchema),
-  });
+  }) as ReturnType<typeof useForm<TripCreate>>;
 
   const vehicleId = watch('vehicleId');
 

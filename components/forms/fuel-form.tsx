@@ -39,9 +39,9 @@ export function FuelForm({ onSuccess }: FuelFormProps) {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FuelLogCreate>({
+  } = useForm({
     resolver: zodResolver(fuelLogCreateSchema),
-  });
+  }) as ReturnType<typeof useForm<FuelLogCreate>>;
 
   useEffect(() => {
     const loadOptions = async () => {

@@ -31,9 +31,9 @@ export function MaintenanceForm({ onSuccess }: MaintenanceFormProps) {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<MaintenanceCreate>({
+  } = useForm({
     resolver: zodResolver(maintenanceCreateSchema),
-  });
+  }) as ReturnType<typeof useForm<MaintenanceCreate>>;
 
   useEffect(() => {
     const loadVehicles = async () => {
@@ -116,7 +116,7 @@ export function MaintenanceForm({ onSuccess }: MaintenanceFormProps) {
             <div>
               <label className="text-sm font-medium text-foreground">Date Performed</label>
               <Input
-                {...register('performedDate')}
+                {...register('performedDate', { valueAsDate: true })}
                 type="date"
                 className="mt-1 bg-background border-border"
               />

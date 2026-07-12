@@ -1,6 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
+const db = prisma as any;
 import { fuelLogCreateSchema, expenseCreateSchema, FuelLogCreate, ExpenseCreate } from '@/lib/validators/transit';
 import { revalidateTag } from 'next/cache';
 
@@ -10,7 +11,7 @@ export async function createFuelLog(data: FuelLogCreate) {
     const validated = fuelLogCreateSchema.parse(data);
 
     // Check if vehicle exists
-    const vehicle = await prisma.vehicle.findUnique({
+    const vehicle = await db.vehicle.findUnique({
       where: { id: validated.vehicleId },
     });
 
@@ -18,17 +19,17 @@ export async function createFuelLog(data: FuelLogCreate) {
 
     // Check if trip exists if provided
     if (validated.tripId) {
-      const trip = await prisma.trip.findUnique({
+      const trip = await db.trip.findUnique({
         where: { id: validated.tripId },
       });
       if (!trip) return { success: false, error: 'Trip not found' };
     }
 
-    const fuelLog = await prisma.fuelLog.create({
+    const fuelLog = await db.fuelLog.create({
       data: validated,
     });
 
-    revalidateTag('fuel-logs');
+    revalidateTag('fuel-logs', 'max');
     return { success: true, data: fuelLog };
   } catch (error: any) {
     console.error('[v0] Fuel log creation error:', error);
@@ -38,7 +39,7 @@ export async function createFuelLog(data: FuelLogCreate) {
 
 export async function getFuelLogs(vehicleId?: string, tripId?: string) {
   try {
-    const logs = await prisma.fuelLog.findMany({
+    const logs = await db.fuelLog.findMany({
       where: {
         ...(vehicleId && { vehicleId }),
         ...(tripId && { tripId }),
@@ -58,11 +59,11 @@ export async function getFuelLogs(vehicleId?: string, tripId?: string) {
 
 export async function deleteFuelLog(id: string) {
   try {
-    await prisma.fuelLog.delete({
+    await db.fuelLog.delete({
       where: { id },
     });
 
-    revalidateTag('fuel-logs');
+    revalidateTag('fuel-logs', 'max');
     return { success: true };
   } catch (error) {
     return { success: false, error: 'Failed to delete fuel log' };
@@ -71,7 +72,7 @@ export async function deleteFuelLog(id: string) {
 
 export async function getFuelStats(vehicleId?: string) {
   try {
-    const totalFuel = await prisma.fuelLog.aggregate({
+    const totalFuel = await db.fuelLog.aggregate({
       where: vehicleId ? { vehicleId } : undefined,
       _sum: {
         liters: true,
@@ -79,7 +80,7 @@ export async function getFuelStats(vehicleId?: string) {
       },
     });
 
-    const count = await prisma.fuelLog.count(
+    const count = await db.fuelLog.count(
       vehicleId ? { where: { vehicleId } } : undefined
     );
 
@@ -108,17 +109,17 @@ export async function createExpense(data: ExpenseCreate) {
     const validated = expenseCreateSchema.parse(data);
 
     // Check if vehicle exists
-    const vehicle = await prisma.vehicle.findUnique({
+    const vehicle = await db.vehicle.findUnique({
       where: { id: validated.vehicleId },
     });
 
     if (!vehicle) return { success: false, error: 'Vehicle not found' };
 
-    const expense = await prisma.expense.create({
+    const expense = await db.expense.create({
       data: validated,
     });
 
-    revalidateTag('expenses');
+    revalidateTag('expenses', 'max');
     return { success: true, data: expense };
   } catch (error: any) {
     console.error('[v0] Expense creation error:', error);
@@ -128,7 +129,7 @@ export async function createExpense(data: ExpenseCreate) {
 
 export async function getExpenses(vehicleId?: string) {
   try {
-    const expenses = await prisma.expense.findMany({
+    const expenses = await db.expense.findMany({
       where: vehicleId ? { vehicleId } : undefined,
       include: {
         vehicle: true,
@@ -144,11 +145,11 @@ export async function getExpenses(vehicleId?: string) {
 
 export async function deleteExpense(id: string) {
   try {
-    await prisma.expense.delete({
+    await db.expense.delete({
       where: { id },
     });
 
-    revalidateTag('expenses');
+    revalidateTag('expenses', 'max');
     return { success: true };
   } catch (error) {
     return { success: false, error: 'Failed to delete expense' };
@@ -157,14 +158,14 @@ export async function deleteExpense(id: string) {
 
 export async function getExpenseStats(vehicleId?: string) {
   try {
-    const totalExpense = await prisma.expense.aggregate({
+    const totalExpense = await db.expense.aggregate({
       where: vehicleId ? { vehicleId } : undefined,
       _sum: {
         amount: true,
       },
     });
 
-    const byType = await prisma.expense.groupBy({
+    const byType = await db.expense.groupBy({
       by: ['type'],
       where: vehicleId ? { vehicleId } : undefined,
       _sum: {
@@ -173,7 +174,7 @@ export async function getExpenseStats(vehicleId?: string) {
       _count: true,
     });
 
-    const count = await prisma.expense.count(
+    const count = await db.expense.count(
       vehicleId ? { where: { vehicleId } } : undefined
     );
 
@@ -182,7 +183,7 @@ export async function getExpenseStats(vehicleId?: string) {
       data: {
         totalAmount: totalExpense._sum.amount || 0,
         count,
-        byType: byType.map(item => ({
+        byType: byType.map((item: any) => ({
           type: item.type,
           amount: item._sum.amount || 0,
           count: item._count,
@@ -200,7 +201,7 @@ export async function getFinancialStats(vehicleId?: string) {
     const [fuelStats, expenseStats, maintenance] = await Promise.all([
       getFuelStats(vehicleId),
       getExpenseStats(vehicleId),
-      prisma.maintenanceLog.aggregate({
+      db.maintenanceLog.aggregate({
         where: vehicleId ? { vehicleId } : undefined,
         _sum: {
           cost: true,
@@ -208,11 +209,11 @@ export async function getFinancialStats(vehicleId?: string) {
       }),
     ]);
 
-    const fuelData = fuelStats.success ? fuelStats.data : { totalCost: 0 };
-    const expenseData = expenseStats.success ? expenseStats.data : { totalAmount: 0 };
+    const fuelData = fuelStats.success && fuelStats.data ? fuelStats.data : { totalCost: 0 };
+    const expenseData = expenseStats.success && expenseStats.data ? expenseStats.data : { totalAmount: 0 };
     const maintenanceCost = maintenance._sum.cost || 0;
 
-    const totalOperationalCost = (fuelData.totalCost || 0) + (expenseData.totalAmount || 0) + maintenanceCost;
+    const totalOperationalCost = ((fuelData as any).totalCost || 0) + ((expenseData as any).totalAmount || 0) + maintenanceCost;
 
     return {
       success: true,

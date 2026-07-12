@@ -1,6 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
+const db = prisma as any;
 import { tripCreateSchema, tripUpdateSchema, TripCreate, TripUpdate } from '@/lib/validators/transit';
 import { revalidateTag } from 'next/cache';
 
@@ -31,8 +32,8 @@ export async function createTrip(data: TripCreate) {
 
     // Fetch vehicle and driver
     const [vehicle, driver] = await Promise.all([
-      prisma.vehicle.findUnique({ where: { id: validated.vehicleId } }),
-      prisma.driver.findUnique({ where: { id: validated.driverId } }),
+      db.vehicle.findUnique({ where: { id: validated.vehicleId } }),
+      db.driver.findUnique({ where: { id: validated.driverId } }),
     ]);
 
     if (!vehicle) return { success: false, error: 'Vehicle not found' };
@@ -58,14 +59,14 @@ export async function createTrip(data: TripCreate) {
       return { success: false, error: 'Vehicle is not available' };
     }
 
-    const trip = await prisma.trip.create({
+    const trip = await db.trip.create({
       data: {
         ...validated,
         status: TripStatus.DRAFT,
       },
     });
 
-    revalidateTag('trips');
+    revalidateTag('trips', 'max');
     return { success: true, data: trip };
   } catch (error: any) {
     console.error('[v0] Trip creation error:', error);
@@ -75,7 +76,7 @@ export async function createTrip(data: TripCreate) {
 
 export async function dispatchTrip(id: string) {
   try {
-    const trip = await prisma.trip.findUnique({ where: { id } });
+    const trip = await db.trip.findUnique({ where: { id } });
     if (!trip) return { success: false, error: 'Trip not found' };
     if (trip.status !== TripStatus.DRAFT) {
       return { success: false, error: 'Only draft trips can be dispatched' };
@@ -83,26 +84,26 @@ export async function dispatchTrip(id: string) {
 
     // Update trip and related records
     const [updatedTrip] = await Promise.all([
-      prisma.trip.update({
+      db.trip.update({
         where: { id },
         data: {
           status: TripStatus.DISPATCHED,
           dispatchedAt: new Date(),
         },
       }),
-      prisma.vehicle.update({
+      db.vehicle.update({
         where: { id: trip.vehicleId },
         data: { status: VehicleStatus.ON_TRIP },
       }),
-      prisma.driver.update({
+      db.driver.update({
         where: { id: trip.driverId },
         data: { status: DriverStatus.ON_TRIP },
       }),
     ]);
 
-    revalidateTag('trips');
-    revalidateTag('vehicles');
-    revalidateTag('drivers');
+    revalidateTag('trips', 'max');
+    revalidateTag('vehicles', 'max');
+    revalidateTag('drivers', 'max');
     return { success: true, data: updatedTrip };
   } catch (error) {
     return { success: false, error: 'Failed to dispatch trip' };
@@ -111,7 +112,7 @@ export async function dispatchTrip(id: string) {
 
 export async function completeTrip(id: string, actualDistance: number, fuelConsumed: number) {
   try {
-    const trip = await prisma.trip.findUnique({
+    const trip = await db.trip.findUnique({
       where: { id },
       include: { vehicle: true, driver: true },
     });
@@ -123,7 +124,7 @@ export async function completeTrip(id: string, actualDistance: number, fuelConsu
 
     // Update trip, vehicle, and driver
     const [updatedTrip] = await Promise.all([
-      prisma.trip.update({
+      db.trip.update({
         where: { id },
         data: {
           status: TripStatus.COMPLETED,
@@ -132,22 +133,22 @@ export async function completeTrip(id: string, actualDistance: number, fuelConsu
           fuelConsumed,
         },
       }),
-      prisma.vehicle.update({
+      db.vehicle.update({
         where: { id: trip.vehicleId },
         data: {
           status: VehicleStatus.AVAILABLE,
           odometer: trip.vehicle.odometer + actualDistance,
         },
       }),
-      prisma.driver.update({
+      db.driver.update({
         where: { id: trip.driverId },
         data: { status: DriverStatus.AVAILABLE },
       }),
     ]);
 
-    revalidateTag('trips');
-    revalidateTag('vehicles');
-    revalidateTag('drivers');
+    revalidateTag('trips', 'max');
+    revalidateTag('vehicles', 'max');
+    revalidateTag('drivers', 'max');
     return { success: true, data: updatedTrip };
   } catch (error) {
     return { success: false, error: 'Failed to complete trip' };
@@ -156,31 +157,31 @@ export async function completeTrip(id: string, actualDistance: number, fuelConsu
 
 export async function cancelTrip(id: string) {
   try {
-    const trip = await prisma.trip.findUnique({ where: { id } });
+    const trip = await db.trip.findUnique({ where: { id } });
     if (!trip) return { success: false, error: 'Trip not found' };
 
     // If trip is dispatched, revert vehicle/driver status
     if (trip.status === TripStatus.DISPATCHED) {
       await Promise.all([
-        prisma.vehicle.update({
+        db.vehicle.update({
           where: { id: trip.vehicleId },
           data: { status: VehicleStatus.AVAILABLE },
         }),
-        prisma.driver.update({
+        db.driver.update({
           where: { id: trip.driverId },
           data: { status: DriverStatus.AVAILABLE },
         }),
       ]);
     }
 
-    const updatedTrip = await prisma.trip.update({
+    const updatedTrip = await db.trip.update({
       where: { id },
       data: { status: TripStatus.CANCELLED },
     });
 
-    revalidateTag('trips');
-    revalidateTag('vehicles');
-    revalidateTag('drivers');
+    revalidateTag('trips', 'max');
+    revalidateTag('vehicles', 'max');
+    revalidateTag('drivers', 'max');
     return { success: true, data: updatedTrip };
   } catch (error) {
     return { success: false, error: 'Failed to cancel trip' };
@@ -193,7 +194,7 @@ export async function updateTrip(id: string, data: TripUpdate) {
 
     // Fetch vehicle if being updated
     if (validated.vehicleId) {
-      const vehicle = await prisma.vehicle.findUnique({
+      const vehicle = await db.vehicle.findUnique({
         where: { id: validated.vehicleId },
       });
       if (!vehicle) return { success: false, error: 'Vehicle not found' };
@@ -203,12 +204,12 @@ export async function updateTrip(id: string, data: TripUpdate) {
       }
     }
 
-    const trip = await prisma.trip.update({
+    const trip = await db.trip.update({
       where: { id },
       data: validated,
     });
 
-    revalidateTag('trips');
+    revalidateTag('trips', 'max');
     return { success: true, data: trip };
   } catch (error) {
     return { success: false, error: 'Failed to update trip' };
@@ -217,7 +218,7 @@ export async function updateTrip(id: string, data: TripUpdate) {
 
 export async function getTrips(status?: TripStatus) {
   try {
-    const trips = await prisma.trip.findMany({
+    const trips = await db.trip.findMany({
       where: status ? { status } : undefined,
       include: {
         vehicle: true,
@@ -234,7 +235,7 @@ export async function getTrips(status?: TripStatus) {
 
 export async function getTripById(id: string) {
   try {
-    const trip = await prisma.trip.findUnique({
+    const trip = await db.trip.findUnique({
       where: { id },
       include: {
         vehicle: true,
@@ -253,7 +254,7 @@ export async function getTripById(id: string) {
 
 export async function getActivaTrips() {
   try {
-    const trips = await prisma.trip.findMany({
+    const trips = await db.trip.findMany({
       where: {
         status: TripStatus.DISPATCHED,
       },
@@ -273,14 +274,14 @@ export async function getActivaTrips() {
 export async function getTripStats() {
   try {
     const [total, dispatched, completed, cancelled] = await Promise.all([
-      prisma.trip.count(),
-      prisma.trip.count({ where: { status: TripStatus.DISPATCHED } }),
-      prisma.trip.count({ where: { status: TripStatus.COMPLETED } }),
-      prisma.trip.count({ where: { status: TripStatus.CANCELLED } }),
+      db.trip.count(),
+      db.trip.count({ where: { status: TripStatus.DISPATCHED } }),
+      db.trip.count({ where: { status: TripStatus.COMPLETED } }),
+      db.trip.count({ where: { status: TripStatus.CANCELLED } }),
     ]);
 
     // Calculate total distance and fuel
-    const stats = await prisma.trip.aggregate({
+    const stats = await db.trip.aggregate({
       where: { status: TripStatus.COMPLETED },
       _sum: {
         actualDistance: true,

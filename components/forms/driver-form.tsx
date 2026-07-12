@@ -22,9 +22,9 @@ export function DriverForm({ onSuccess }: DriverFormProps) {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<DriverCreate>({
+  } = useForm({
     resolver: zodResolver(driverCreateSchema),
-  });
+  }) as ReturnType<typeof useForm<DriverCreate>>;
 
   const onSubmit = async (data: DriverCreate) => {
     setIsLoading(true);
@@ -93,7 +93,7 @@ export function DriverForm({ onSuccess }: DriverFormProps) {
             <div>
               <label className="text-sm font-medium text-foreground">License Expiry Date</label>
               <Input
-                {...register('licenseExpiry')}
+                {...register('licenseExpiry', { valueAsDate: true })}
                 type="date"
                 className="mt-1 bg-background border-border"
               />

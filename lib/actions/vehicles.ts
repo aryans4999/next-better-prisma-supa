@@ -1,6 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
+const db = prisma as any;
 import { vehicleCreateSchema, vehicleUpdateSchema, VehicleCreate, VehicleUpdate } from '@/lib/validators/transit';
 import { revalidateTag } from 'next/cache';
 
@@ -15,14 +16,14 @@ export async function createVehicle(data: VehicleCreate) {
   try {
     const validated = vehicleCreateSchema.parse(data);
     
-    const vehicle = await prisma.vehicle.create({
+    const vehicle = await db.vehicle.create({
       data: {
         ...validated,
         status: VehicleStatus.AVAILABLE,
       },
     });
 
-    revalidateTag('vehicles');
+    revalidateTag('vehicles', 'max');
     return { success: true, data: vehicle };
   } catch (error) {
     return { success: false, error: 'Failed to create vehicle' };
@@ -33,12 +34,12 @@ export async function updateVehicle(id: string, data: VehicleUpdate) {
   try {
     const validated = vehicleUpdateSchema.parse(data);
     
-    const vehicle = await prisma.vehicle.update({
+    const vehicle = await db.vehicle.update({
       where: { id },
       data: validated,
     });
 
-    revalidateTag('vehicles');
+    revalidateTag('vehicles', 'max');
     return { success: true, data: vehicle };
   } catch (error) {
     return { success: false, error: 'Failed to update vehicle' };
@@ -47,11 +48,11 @@ export async function updateVehicle(id: string, data: VehicleUpdate) {
 
 export async function deleteVehicle(id: string) {
   try {
-    await prisma.vehicle.delete({
+    await db.vehicle.delete({
       where: { id },
     });
 
-    revalidateTag('vehicles');
+    revalidateTag('vehicles', 'max');
     return { success: true };
   } catch (error) {
     return { success: false, error: 'Failed to delete vehicle' };
@@ -60,7 +61,7 @@ export async function deleteVehicle(id: string) {
 
 export async function getVehicles() {
   try {
-    const vehicles = await prisma.vehicle.findMany({
+    const vehicles = await db.vehicle.findMany({
       where: {
         status: { not: VehicleStatus.RETIRED },
       },
@@ -75,7 +76,7 @@ export async function getVehicles() {
 
 export async function getVehicleById(id: string) {
   try {
-    const vehicle = await prisma.vehicle.findUnique({
+    const vehicle = await db.vehicle.findUnique({
       where: { id },
       include: {
         trips: { orderBy: { createdAt: 'desc' }, take: 5 },
@@ -96,7 +97,7 @@ export async function getVehicleById(id: string) {
 
 export async function retireVehicle(id: string) {
   try {
-    const vehicle = await prisma.vehicle.update({
+    const vehicle = await db.vehicle.update({
       where: { id },
       data: {
         status: VehicleStatus.RETIRED,
@@ -104,7 +105,7 @@ export async function retireVehicle(id: string) {
       },
     });
 
-    revalidateTag('vehicles');
+    revalidateTag('vehicles', 'max');
     return { success: true, data: vehicle };
   } catch (error) {
     return { success: false, error: 'Failed to retire vehicle' };
@@ -113,12 +114,12 @@ export async function retireVehicle(id: string) {
 
 export async function updateVehicleOdometer(id: string, odometer: number) {
   try {
-    const vehicle = await prisma.vehicle.update({
+    const vehicle = await db.vehicle.update({
       where: { id },
       data: { odometer },
     });
 
-    revalidateTag('vehicles');
+    revalidateTag('vehicles', 'max');
     return { success: true, data: vehicle };
   } catch (error) {
     return { success: false, error: 'Failed to update odometer' };
@@ -127,7 +128,7 @@ export async function updateVehicleOdometer(id: string, odometer: number) {
 
 export async function getAvailableVehicles() {
   try {
-    const vehicles = await prisma.vehicle.findMany({
+    const vehicles = await db.vehicle.findMany({
       where: {
         status: VehicleStatus.AVAILABLE,
       },
@@ -143,11 +144,11 @@ export async function getAvailableVehicles() {
 export async function getVehicleStats() {
   try {
     const [total, available, onTrip, inShop, retired] = await Promise.all([
-      prisma.vehicle.count(),
-      prisma.vehicle.count({ where: { status: VehicleStatus.AVAILABLE } }),
-      prisma.vehicle.count({ where: { status: VehicleStatus.ON_TRIP } }),
-      prisma.vehicle.count({ where: { status: VehicleStatus.IN_SHOP } }),
-      prisma.vehicle.count({ where: { status: VehicleStatus.RETIRED } }),
+      db.vehicle.count(),
+      db.vehicle.count({ where: { status: VehicleStatus.AVAILABLE } }),
+      db.vehicle.count({ where: { status: VehicleStatus.ON_TRIP } }),
+      db.vehicle.count({ where: { status: VehicleStatus.IN_SHOP } }),
+      db.vehicle.count({ where: { status: VehicleStatus.RETIRED } }),
     ]);
 
     const avgUtilization = total > 0 ? ((onTrip + inShop) / total) * 100 : 0;

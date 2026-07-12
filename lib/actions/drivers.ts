@@ -4,6 +4,9 @@ import prisma from '@/lib/prisma';
 import { driverCreateSchema, driverUpdateSchema, DriverCreate, DriverUpdate } from '@/lib/validators/transit';
 import { revalidateTag } from 'next/cache';
 
+// Type assertion for new Prisma models that will be available after migration
+const db = prisma as any;
+
 const DriverStatus = {
   AVAILABLE: 'AVAILABLE',
   ON_TRIP: 'ON_TRIP',
@@ -20,14 +23,14 @@ export async function createDriver(data: DriverCreate) {
       return { success: false, error: 'License has expired' };
     }
 
-    const driver = await prisma.driver.create({
+    const driver = await db.driver.create({
       data: {
         ...validated,
         status: DriverStatus.AVAILABLE,
       },
     });
 
-    revalidateTag('drivers');
+    revalidateTag('drivers', 'max');
     return { success: true, data: driver };
   } catch (error: any) {
     if (error.code === 'P2002') {
@@ -45,12 +48,12 @@ export async function updateDriver(id: string, data: DriverUpdate) {
       return { success: false, error: 'License has expired' };
     }
 
-    const driver = await prisma.driver.update({
+    const driver = await db.driver.update({
       where: { id },
       data: validated,
     });
 
-    revalidateTag('drivers');
+    revalidateTag('drivers', 'max');
     return { success: true, data: driver };
   } catch (error) {
     return { success: false, error: 'Failed to update driver' };
@@ -59,11 +62,11 @@ export async function updateDriver(id: string, data: DriverUpdate) {
 
 export async function deleteDriver(id: string) {
   try {
-    await prisma.driver.delete({
+    await db.driver.delete({
       where: { id },
     });
 
-    revalidateTag('drivers');
+    revalidateTag('drivers', 'max');
     return { success: true };
   } catch (error) {
     return { success: false, error: 'Failed to delete driver' };
@@ -72,7 +75,7 @@ export async function deleteDriver(id: string) {
 
 export async function getDrivers() {
   try {
-    const drivers = await prisma.driver.findMany({
+    const drivers = await db.driver.findMany({
       where: {
         status: { not: DriverStatus.SUSPENDED },
       },
@@ -87,7 +90,7 @@ export async function getDrivers() {
 
 export async function getDriverById(id: string) {
   try {
-    const driver = await prisma.driver.findUnique({
+    const driver = await db.driver.findUnique({
       where: { id },
       include: {
         trips: { orderBy: { createdAt: 'desc' }, take: 10 },
@@ -106,7 +109,7 @@ export async function getDriverById(id: string) {
 
 export async function suspendDriver(id: string, reason: string) {
   try {
-    const driver = await prisma.driver.update({
+    const driver = await db.driver.update({
       where: { id },
       data: {
         status: DriverStatus.SUSPENDED,
@@ -114,7 +117,7 @@ export async function suspendDriver(id: string, reason: string) {
       },
     });
 
-    revalidateTag('drivers');
+    revalidateTag('drivers', 'max');
     return { success: true, data: driver };
   } catch (error) {
     return { success: false, error: 'Failed to suspend driver' };
@@ -127,12 +130,12 @@ export async function updateSafetyScore(id: string, score: number) {
       return { success: false, error: 'Safety score must be between 0 and 100' };
     }
 
-    const driver = await prisma.driver.update({
+    const driver = await db.driver.update({
       where: { id },
       data: { safetyScore: score },
     });
 
-    revalidateTag('drivers');
+    revalidateTag('drivers', 'max');
     return { success: true, data: driver };
   } catch (error) {
     return { success: false, error: 'Failed to update safety score' };
@@ -143,7 +146,7 @@ export async function getAvailableDrivers() {
   try {
     const today = new Date();
     
-    const drivers = await prisma.driver.findMany({
+    const drivers = await db.driver.findMany({
       where: {
         status: DriverStatus.AVAILABLE,
         licenseExpiry: { gt: today },
@@ -161,7 +164,7 @@ export async function getExpiredLicenses() {
   try {
     const today = new Date();
     
-    const drivers = await prisma.driver.findMany({
+    const drivers = await db.driver.findMany({
       where: {
         licenseExpiry: { lte: today },
       },
@@ -179,7 +182,7 @@ export async function getExpiringLicenses(daysAhead: number = 30) {
     const today = new Date();
     const futureDate = new Date(today.getTime() + daysAhead * 24 * 60 * 60 * 1000);
     
-    const drivers = await prisma.driver.findMany({
+    const drivers = await db.driver.findMany({
       where: {
         licenseExpiry: {
           gte: today,
@@ -198,14 +201,14 @@ export async function getExpiringLicenses(daysAhead: number = 30) {
 export async function getDriverStats() {
   try {
     const [total, available, onTrip, offDuty, suspended] = await Promise.all([
-      prisma.driver.count(),
-      prisma.driver.count({ where: { status: DriverStatus.AVAILABLE } }),
-      prisma.driver.count({ where: { status: DriverStatus.ON_TRIP } }),
-      prisma.driver.count({ where: { status: DriverStatus.OFF_DUTY } }),
-      prisma.driver.count({ where: { status: DriverStatus.SUSPENDED } }),
+      db.driver.count(),
+      db.driver.count({ where: { status: DriverStatus.AVAILABLE } }),
+      db.driver.count({ where: { status: DriverStatus.ON_TRIP } }),
+      db.driver.count({ where: { status: DriverStatus.OFF_DUTY } }),
+      db.driver.count({ where: { status: DriverStatus.SUSPENDED } }),
     ]);
 
-    const expiredLicenses = await prisma.driver.count({
+    const expiredLicenses = await db.driver.count({
       where: { licenseExpiry: { lte: new Date() } },
     });
 
