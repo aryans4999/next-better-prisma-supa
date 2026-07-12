@@ -19,8 +19,24 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TransitOps - Smart Transport Operations",
-  description: "Fleet management platform for transport operations",
+  title: "TransitOps - Smart Transport Operations Platform",
+  description: "Streamline your fleet management with real-time tracking, maintenance scheduling, fuel optimization, and comprehensive analytics.",
+  icons: {
+    icon: "/logo.png",
+  },
+  openGraph: {
+    title: "TransitOps - Smart Transport Operations Platform",
+    description: "Streamline your fleet management with real-time tracking, maintenance scheduling, fuel optimization, and comprehensive analytics.",
+    type: "website",
+    images: [
+      {
+        url: "/logo.png",
+        width: 256,
+        height: 256,
+        alt: "TransitOps Logo",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
